@@ -2,8 +2,8 @@
 
 namespace Jodeveloper\UploadFileScanner;
 
-use Symfony\Component\Process\Process;
 use Jodeveloper\UploadFileScanner\Exceptions\ScanFailedException;
+use Symfony\Component\Process\Process;
 
 class ClamAvScanner
 {
@@ -11,8 +11,7 @@ class ClamAvScanner
         private string $binary,
         private int $timeout,
         private array $scanOptions,
-    ) {
-    }
+    ) {}
 
     public function scan(string $path): ScanResult
     {
