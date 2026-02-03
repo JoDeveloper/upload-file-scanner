@@ -1,75 +1,244 @@
-# :package_description
+# Laravel ClamAV Upload Scanner
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This repo can be used to scaffold a Laravel package. Follow these steps to get started:
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/jodeveloper/upload-file-scanner.svg?style=flat-square)](https://packagist.org/packages/jodeveloper/upload-file-scanner)
+[![Total Downloads](https://img.shields.io/packagist/dt/jodeveloper/upload-file-scanner.svg?style=flat-square)](https://packagist.org/packages/jodeveloper/upload-file-scanner)
 
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
-
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+A clean, Laravel-native way to scan uploaded files using ClamAV. This package provides a simple API for virus scanning in your file upload validation and storage pipelines.
 
 ## Installation
 
 You can install the package via composer:
 
 ```bash
-composer require :vendor_slug/:package_slug
-```
-
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
-php artisan migrate
+composer require jodeveloper/upload-file-scanner
 ```
 
 You can publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-config"
+php artisan vendor:publish --tag="clamav-scanner-config"
 ```
 
 This is the contents of the published config file:
 
 ```php
 return [
+    'binary' => env('CLAMAV_BINARY', 'clamscan'),
+    'timeout' => (int) env('CLAMAV_TIMEOUT', 30),
+    'scan_options' => [
+        '--no-summary',
+    ],
 ];
 ```
 
-Optionally, you can publish the views using
+## Requirements
 
-```bash
-php artisan vendor:publish --tag=":package_slug-views"
-```
+- PHP 8.4 or higher
+- Laravel 11.0 or 12.0
+- ClamAV installed on your server (clamscan binary)
 
 ## Usage
 
+### Using the Scanner Directly
+
 ```php
-$variable = new VendorName\Skeleton();
-echo $variable->echoPhrase('Hello, VendorName!');
+use Jodeveloper\UploadFileScanner\ClamAvScanner;
+
+$scanner = app(ClamAvScanner::class);
+
+$result = $scanner->scan('/path/to/file');
+
+if ($result->hasVirus()) {
+    // Handle infected file
+}
+
+if ($result->isClean()) {
+    // File is safe to process
+}
+
+// Get the scanner output
+$output = $result->output();
 ```
+
+### Using the Validation Rule
+
+The package provides a Laravel validation rule for easy integration:
+
+```php
+use Illuminate\Http\Request;
+use Jodeveloper\UploadFileScanner\Rules\CleanFile;
+
+public function upload(Request $request)
+{
+    $validated = $request->validate([
+        'file' => ['required', 'file', new CleanFile(app(\Jodeveloper\UploadFileScanner\ClamAvScanner::class))],
+    ]);
+
+    // File is clean, proceed with storage
+}
+```
+
+Or use the string-based rule:
+
+```php
+public function upload(Request $request)
+{
+    $validated = $request->validate([
+        'file' => ['required', 'file', 'clean_file'],
+    ]);
+
+    // File is clean, proceed with storage
+}
+```
+
+### Example Controller
+
+```php
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Jodeveloper\UploadFileScanner\ClamAvScanner;
+use Jodeveloper\UploadFileScanner\Exceptions\ScanFailedException;
+
+class FileUploadController extends Controller
+{
+    public function store(Request $request, ClamAvScanner $scanner)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'], // max 10MB
+        ]);
+
+        try {
+            $result = $scanner->scan($request->file('file')->getRealPath());
+
+            if ($result->hasVirus()) {
+                return back()->with('error', 'The uploaded file contains a virus.');
+            }
+
+            // File is clean, store it
+            $path = $request->file('file')->store('uploads');
+
+            return back()->with('success', 'File uploaded successfully.');
+
+        } catch (ScanFailedException $e) {
+            // Handle scanner execution failure
+            return back()->with('error', 'Unable to scan file. Please try again.');
+        }
+    }
+}
+```
+
+## Configuration
+
+### ClamAV Binary Path
+
+By default, the package assumes `clamscan` is in your system PATH. If you have a custom installation:
+
+```env
+CLAMAV_BINARY=/usr/local/bin/clamscan
+```
+
+### Scan Timeout
+
+The default timeout is 30 seconds. Adjust for large files:
+
+```env
+CLAMAV_TIMEOUT=60
+```
+
+### Scan Options
+
+Add additional options to pass to clamscan in the config file:
+
+```php
+'scan_options' => [
+    '--no-summary',
+    '--infected',
+],
+```
+
+**Warning:** Use caution with options like `--remove` which will delete infected files.
+
+## Security Philosophy
+
+### This Package is a Secondary Defense
+
+This package provides virus scanning as a secondary security layer. It should **not** be your only defense against malicious file uploads.
+
+### Required Additional Security Measures
+
+1. **Re-encoding Images**: Always re-encode uploaded images to strip potential embedded payloads
+2. **File Type Validation**: Validate MIME types and file extensions
+3. **Content Inspection**: Inspect file contents, not just extensions
+4. **Storage Location**: Store uploads outside the public web root
+5. **Access Control**: Implement proper authentication and authorization
+
+### SVG Files are Unsafe
+
+SVG files can contain JavaScript and should be treated with extreme caution. Always sanitize SVG files before storage or serving.
+
+### Public Storage is Dangerous
+
+Never store user uploads in publicly accessible directories without proper access controls. Use Laravel's `Storage::disk('local')` or implement signed URLs for public access.
+
+## Exception Handling
+
+The package throws `ScanFailedException` when:
+
+- ClamAV binary is not found
+- Process crashes or fails to execute
+- Timeout occurs
+- Other execution errors occur
+
+Infected files do **not** throw exceptions. They return a `ScanResult` where `hasVirus()` returns `true`.
+
+```php
+use Jodeveloper\UploadFileScanner\Exceptions\ScanFailedException;
+
+try {
+    $result = $scanner->scan($path);
+} catch (ScanFailedException $e) {
+    // Log the error and notify administrators
+    Log::error('ClamAV scan failed', ['message' => $e->getMessage()]);
+    throw new \RuntimeException('Unable to scan file. Please try again later.');
+}
+```
+
+## API Reference
+
+### ClamAvScanner
+
+```php
+scan(string $path): ScanResult
+```
+
+Scans a file at the given path and returns a `ScanResult` object.
+
+### ScanResult
+
+```php
+isClean(): bool     // Returns true if no virus was found
+hasVirus(): bool    // Returns true if a virus was detected
+output(): string    // Returns the scanner output
+```
+
+### CleanFile Rule
+
+Implements `Illuminate\Contracts\Validation\Rule`. Can be used as an object or string rule (`clean_file`).
 
 ## Testing
 
 ```bash
 composer test
 ```
+
+The test suite mocks all ClamAV execution - no actual scanning occurs during tests.
+
+## Limitations
+
+- This package does not provide automatic scanning of all uploads
+- No UI is included
+- No opinionated storage logic is provided
+- ClamAV must be installed and accessible on your server
 
 ## Changelog
 
@@ -85,7 +254,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
-- [:author_name](https://github.com/:author_username)
+- [Joe Developer](https://github.com/jodeveloper)
 - [All Contributors](../../contributors)
 
 ## License
