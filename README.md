@@ -37,6 +37,60 @@ return [
 - Laravel 11.0 or 12.0
 - ClamAV installed on your server (clamscan binary)
 
+## Installing ClamAV
+
+### macOS
+
+```bash
+brew install clamav
+```
+
+After installation, you may need to update the virus definitions:
+
+```bash
+freshclam
+```
+
+### Ubuntu/Debian
+
+```bash
+sudo apt-get update
+sudo apt-get install clamav clamav-daemon
+```
+
+Update virus definitions:
+
+```bash
+sudo freshclam
+```
+
+### CentOS/RHEL
+
+```bash
+sudo yum install epel-release
+sudo yum install clamav clamav-update
+```
+
+Update virus definitions:
+
+```bash
+sudo freshclam
+```
+
+### From Source
+
+For detailed instructions on installing ClamAV from source, see the [official ClamAV documentation](https://docs.clamav.net/manual/Installing/Installing-from-source-Unix.html).
+
+### Verifying Installation
+
+After installation, verify that ClamAV is accessible:
+
+```bash
+clamscan --version
+```
+
+This should display the ClamAV version information.
+
 ## Usage
 
 ### Using the Scanner Directly

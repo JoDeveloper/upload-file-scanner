@@ -1,21 +1,19 @@
 <?php
 
-use Symfony\Component\Process\Process;
 use Jodeveloper\UploadFileScanner\ClamAvScanner;
 use Jodeveloper\UploadFileScanner\Exceptions\ScanFailedException;
 use Jodeveloper\UploadFileScanner\ScanResult;
-
-beforeEach(function () {
-    Mockery::close();
-});
+use PHPUnit\Framework\MockObject\MockObject;
+use Symfony\Component\Process\Process;
 
 test('it returns clean result on exit code zero', function () {
-    $process = Mockery::mock('overload:'.Process::class);
-    $process->shouldReceive('run')->once();
-    $process->shouldReceive('isSuccessful')->andReturn(true);
-    $process->shouldReceive('getExitCode')->andReturn(0);
-    $process->shouldReceive('getOutput')->andReturn('OK');
-    $process->shouldReceive('setTimeout')->once()->with(30)->andReturnSelf();
+    /** @var Process&MockObject $process */
+    $process = $this->createMock(Process::class);
+    $process->expects($this->once())->method('run');
+    $process->expects($this->once())->method('isSuccessful')->willReturn(true);
+    $process->expects($this->once())->method('getExitCode')->willReturn(0);
+    $process->expects($this->once())->method('getOutput')->willReturn('OK');
+    $process->expects($this->once())->method('setTimeout')->with(30)->willReturnSelf();
 
     $scanner = new ClamAvScanner(
         binary: 'clamscan',
@@ -23,7 +21,23 @@ test('it returns clean result on exit code zero', function () {
         scanOptions: ['--no-summary'],
     );
 
-    $result = $scanner->scan('/path/to/file');
+    // Use reflection to inject the mock
+    $reflection = new \ReflectionClass($scanner);
+    $method = $reflection->getMethod('createProcess');
+    $method->setAccessible(true);
+
+    // We need to test the scan method directly, so let's use a different approach
+    // Create a partial mock of the scanner
+    $scannerMock = $this->getMockBuilder(ClamAvScanner::class)
+        ->setConstructorArgs(['clamscan', 30, ['--no-summary']])
+        ->onlyMethods(['createProcess'])
+        ->getMock();
+
+    $scannerMock->expects($this->once())
+        ->method('createProcess')
+        ->willReturn($process);
+
+    $result = $scannerMock->scan('/path/to/file');
 
     expect($result)
         ->toBeInstanceOf(ScanResult::class)
@@ -32,20 +46,24 @@ test('it returns clean result on exit code zero', function () {
 });
 
 test('it returns infected result on exit code one', function () {
-    $process = Mockery::mock('overload:'.Process::class);
-    $process->shouldReceive('run')->once();
-    $process->shouldReceive('isSuccessful')->andReturn(false);
-    $process->shouldReceive('getExitCode')->andReturn(1);
-    $process->shouldReceive('getOutput')->andReturn('/path/to/file: Eicar-Test-Signature FOUND');
-    $process->shouldReceive('setTimeout')->once()->with(30)->andReturnSelf();
+    /** @var Process&MockObject $process */
+    $process = $this->createMock(Process::class);
+    $process->expects($this->once())->method('run');
+    $process->expects($this->once())->method('isSuccessful')->willReturn(false);
+    $process->expects($this->once())->method('getExitCode')->willReturn(1);
+    $process->expects($this->once())->method('getOutput')->willReturn('/path/to/file: Eicar-Test-Signature FOUND');
+    $process->expects($this->once())->method('setTimeout')->with(30)->willReturnSelf();
 
-    $scanner = new ClamAvScanner(
-        binary: 'clamscan',
-        timeout: 30,
-        scanOptions: ['--no-summary'],
-    );
+    $scannerMock = $this->getMockBuilder(ClamAvScanner::class)
+        ->setConstructorArgs(['clamscan', 30, ['--no-summary']])
+        ->onlyMethods(['createProcess'])
+        ->getMock();
 
-    $result = $scanner->scan('/path/to/file');
+    $scannerMock->expects($this->once())
+        ->method('createProcess')
+        ->willReturn($process);
+
+    $result = $scannerMock->scan('/path/to/file');
 
     expect($result)
         ->toBeInstanceOf(ScanResult::class)
@@ -54,56 +72,73 @@ test('it returns infected result on exit code one', function () {
 });
 
 test('it throws exception on exit code two', function () {
-    $process = Mockery::mock('overload:'.Process::class);
-    $process->shouldReceive('run')->once();
-    $process->shouldReceive('isSuccessful')->andReturn(false);
-    $process->shouldReceive('getExitCode')->andReturn(2);
-    $process->shouldReceive('getErrorOutput')->andReturn('clamscan: cannot access /path/to/file: No such file or directory');
-    $process->shouldReceive('setTimeout')->once()->with(30)->andReturnSelf();
+    $this->expectException(ScanFailedException::class);
+    $this->expectExceptionMessage('ClamAV scan failed');
 
-    $scanner = new ClamAvScanner(
-        binary: 'clamscan',
-        timeout: 30,
-        scanOptions: ['--no-summary'],
-    );
+    /** @var Process&MockObject $process */
+    $process = $this->createMock(Process::class);
+    $process->expects($this->once())->method('run');
+    $process->expects($this->once())->method('isSuccessful')->willReturn(false);
+    $process->expects($this->once())->method('getExitCode')->willReturn(2);
+    $process->expects($this->once())->method('getErrorOutput')->willReturn('clamscan: cannot access /path/to/file: No such file or directory');
+    $process->expects($this->once())->method('setTimeout')->with(30)->willReturnSelf();
 
-    $scanner->scan('/path/to/file');
-})->throws(ScanFailedException::class, 'ClamAV scan failed');
+    $scannerMock = $this->getMockBuilder(ClamAvScanner::class)
+        ->setConstructorArgs(['clamscan', 30, ['--no-summary']])
+        ->onlyMethods(['createProcess'])
+        ->getMock();
+
+    $scannerMock->expects($this->once())
+        ->method('createProcess')
+        ->willReturn($process);
+
+    $scannerMock->scan('/path/to/file');
+});
 
 test('it throws exception on unknown exit code', function () {
-    $process = Mockery::mock('overload:'.Process::class);
-    $process->shouldReceive('run')->once();
-    $process->shouldReceive('isSuccessful')->andReturn(false);
-    $process->shouldReceive('getExitCode')->andReturn(127);
-    $process->shouldReceive('getErrorOutput')->andReturn('clamscan: command not found');
-    $process->shouldReceive('setTimeout')->once()->with(30)->andReturnSelf();
+    $this->expectException(ScanFailedException::class);
 
-    $scanner = new ClamAvScanner(
-        binary: 'clamscan',
-        timeout: 30,
-        scanOptions: ['--no-summary'],
-    );
+    /** @var Process&MockObject $process */
+    $process = $this->createMock(Process::class);
+    $process->expects($this->once())->method('run');
+    $process->expects($this->once())->method('isSuccessful')->willReturn(false);
+    $process->expects($this->once())->method('getExitCode')->willReturn(127);
+    $process->expects($this->once())->method('getErrorOutput')->willReturn('clamscan: command not found');
+    $process->expects($this->once())->method('setTimeout')->with(30)->willReturnSelf();
 
-    $scanner->scan('/path/to/file');
-})->throws(ScanFailedException::class);
+    $scannerMock = $this->getMockBuilder(ClamAvScanner::class)
+        ->setConstructorArgs(['clamscan', 30, ['--no-summary']])
+        ->onlyMethods(['createProcess'])
+        ->getMock();
+
+    $scannerMock->expects($this->once())
+        ->method('createProcess')
+        ->willReturn($process);
+
+    $scannerMock->scan('/path/to/file');
+});
 
 test('scan result output returns process output', function () {
     $output = 'Scan complete';
 
-    $process = Mockery::mock('overload:'.Process::class);
-    $process->shouldReceive('run')->once();
-    $process->shouldReceive('isSuccessful')->andReturn(true);
-    $process->shouldReceive('getExitCode')->andReturn(0);
-    $process->shouldReceive('getOutput')->andReturn($output);
-    $process->shouldReceive('setTimeout')->once()->with(30)->andReturnSelf();
+    /** @var Process&MockObject $process */
+    $process = $this->createMock(Process::class);
+    $process->expects($this->once())->method('run');
+    $process->expects($this->once())->method('isSuccessful')->willReturn(true);
+    $process->expects($this->once())->method('getExitCode')->willReturn(0);
+    $process->expects($this->once())->method('getOutput')->willReturn($output);
+    $process->expects($this->once())->method('setTimeout')->with(30)->willReturnSelf();
 
-    $scanner = new ClamAvScanner(
-        binary: 'clamscan',
-        timeout: 30,
-        scanOptions: ['--no-summary'],
-    );
+    $scannerMock = $this->getMockBuilder(ClamAvScanner::class)
+        ->setConstructorArgs(['clamscan', 30, ['--no-summary']])
+        ->onlyMethods(['createProcess'])
+        ->getMock();
 
-    $result = $scanner->scan('/path/to/file');
+    $scannerMock->expects($this->once())
+        ->method('createProcess')
+        ->willReturn($process);
+
+    $result = $scannerMock->scan('/path/to/file');
 
     expect($result->output())->toBe($output);
 });

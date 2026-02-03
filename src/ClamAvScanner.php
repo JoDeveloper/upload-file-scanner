@@ -18,7 +18,7 @@ class ClamAvScanner
     {
         $command = $this->buildCommand($path);
 
-        $process = new Process($command);
+        $process = $this->createProcess($command);
         $process->setTimeout($this->timeout);
 
         $process->run();
@@ -40,6 +40,11 @@ class ClamAvScanner
         }
 
         $this->handleProcessFailure($process, $command);
+    }
+
+    protected function createProcess(array $command): Process
+    {
+        return new Process($command);
     }
 
     private function buildCommand(string $path): array
