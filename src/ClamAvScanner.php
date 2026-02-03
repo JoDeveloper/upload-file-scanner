@@ -39,7 +39,7 @@ class ClamAvScanner
             );
         }
 
-        $this->handleProcessFailure($process, $command);
+        $this->handleProcessFailure($process, $command, $exitCode);
     }
 
     protected function createProcess(array $command): Process
@@ -56,12 +56,12 @@ class ClamAvScanner
         );
     }
 
-    private function handleProcessFailure(Process $process, array $command): never
+    private function handleProcessFailure(Process $process, array $command, int $exitCode): never
     {
         throw ScanFailedException::make(
             implode(' ', $command),
             $process->getErrorOutput(),
-            $process->getExitCode() ?? -1
+            $exitCode
         );
     }
 }
