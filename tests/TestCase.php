@@ -3,8 +3,8 @@
 namespace Jodeveloper\UploadFileScanner\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as Orchestra;
 use Jodeveloper\UploadFileScanner\SkeletonServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
 {

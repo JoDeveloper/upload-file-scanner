@@ -7,8 +7,7 @@ readonly class ScanResult
     public function __construct(
         private bool $clean,
         private string $output,
-    ) {
-    }
+    ) {}
 
     public function isClean(): bool
     {

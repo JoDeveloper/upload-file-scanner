@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Validator;
 use Jodeveloper\UploadFileScanner\ClamAvScanner;
 use Jodeveloper\UploadFileScanner\Rules\CleanFile;
 use Jodeveloper\UploadFileScanner\ScanResult;
-use Jodeveloper\UploadFileScanner\Tests\TestCase;
 
 beforeEach(function () {
     Mockery::close();

@@ -9,8 +9,7 @@ class CleanFile implements Rule
 {
     public function __construct(
         private ClamAvScanner $scanner,
-    ) {
-    }
+    ) {}
 
     public function passes($attribute, $value): bool
     {
