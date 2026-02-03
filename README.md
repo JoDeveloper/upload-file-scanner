@@ -33,7 +33,7 @@ return [
 
 ## Requirements
 
-- PHP 8.4 or higher
+- PHP 8.3 or higher
 - Laravel 11.0 or 12.0
 - ClamAV installed on your server (clamscan binary)
 
