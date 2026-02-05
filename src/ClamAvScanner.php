@@ -2,15 +2,16 @@
 
 namespace Jodeveloper\UploadFileScanner;
 
+use Jodeveloper\UploadFileScanner\Contracts\Scanner;
 use Jodeveloper\UploadFileScanner\Exceptions\ScanFailedException;
 use Symfony\Component\Process\Process;
 
-class ClamAvScanner
+class ClamAvScanner implements Scanner
 {
     public function __construct(
-        private string $binary,
-        private int $timeout,
-        private array $scanOptions,
+        private readonly string $binary,
+        private readonly int $timeout,
+        private readonly array $scanOptions,
     ) {}
 
     public function scan(string $path): ScanResult
@@ -24,6 +25,7 @@ class ClamAvScanner
 
         $exitCode = $process->getExitCode();
 
+        // 0: No virus found
         if ($exitCode === 0) {
             return new ScanResult(
                 clean: true,
@@ -31,6 +33,7 @@ class ClamAvScanner
             );
         }
 
+        // 1: Virus found
         if ($exitCode === 1) {
             return new ScanResult(
                 clean: false,
@@ -55,7 +58,7 @@ class ClamAvScanner
         );
     }
 
-    private function handleProcessFailure(Process $process, array $command, int $exitCode): never
+    private function handleProcessFailure(Process $process, array $command, ?int $exitCode): never
     {
         throw ScanFailedException::make(
             implode(' ', $command),

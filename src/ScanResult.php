@@ -5,8 +5,8 @@ namespace Jodeveloper\UploadFileScanner;
 readonly class ScanResult
 {
     public function __construct(
-        private bool $clean,
-        private string $output,
+        public bool $clean,
+        public string $output = '',
     ) {}
 
     public function isClean(): bool

@@ -93,14 +93,12 @@ This should display ClamAV version information.
 
 ## Usage
 
-### Using the Scanner Directly
+### Using the Facade (Recommended)
 
 ```php
-use Jodeveloper\UploadFileScanner\ClamAvScanner;
+use Jodeveloper\UploadFileScanner\Facades\Scanner;
 
-$scanner = app(ClamAvScanner::class);
-
-$result = $scanner->scan('/path/to/file');
+$result = Scanner::scan('/path/to/file');
 
 if ($result->hasVirus()) {
     // Handle infected file
@@ -111,7 +109,7 @@ if ($result->isClean()) {
 }
 
 // Get the scanner output
-$output = $result->output();
+$output = $result->output;
 ```
 
 ### Using the Validation Rule
@@ -135,11 +133,12 @@ public function upload(Request $request)
 
 ```php
 use Jodeveloper\UploadFileScanner\Rules\CleanFile;
+use Jodeveloper\UploadFileScanner\Contracts\Scanner;
 
 public function upload(Request $request)
 {
     $validated = $request->validate([
-        'file' => ['required', 'file', new CleanFile(app(\Jodeveloper\UploadFileScanner\ClamAvScanner::class))],
+        'file' => ['required', 'file', new CleanFile()],
     ]);
 
     // File is clean, proceed with storage
@@ -150,13 +149,12 @@ public function upload(Request $request)
 
 ```php
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Jodeveloper\UploadFileScanner\ClamAvScanner;
+use Jodeveloper\UploadFileScanner\Contracts\Scanner;
 use Jodeveloper\UploadFileScanner\Exceptions\ScanFailedException;
 
 class FileUploadController extends Controller
 {
-    public function store(Request $request, ClamAvScanner $scanner)
+    public function store(Request $request, Scanner $scanner)
     {
         $request->validate([
             'file' => ['required', 'file', 'max:10240'], // max 10MB
@@ -260,20 +258,36 @@ try {
 
 ## API Reference
 
-### ClamAvScanner
+### Facade
 
 ```php
-scan(string $path): ScanResult
+use Jodeveloper\UploadFileScanner\Facades\Scanner;
+
+Scanner::scan(string $path): ScanResult
 ```
 
-Scans a file at the given path and returns a `ScanResult` object.
+### Contract
+
+```php
+use Jodeveloper\UploadFileScanner\Contracts\Scanner;
+
+public function __construct(Scanner $scanner)
+```
 
 ### ScanResult
+
+The `ScanResult` object is immutable and exposes readonly properties:
+
+```php
+public readonly bool $clean
+public readonly string $output
+```
+
+Helper methods are also available:
 
 ```php
 isClean(): bool     // Returns true if no virus was found
 hasVirus(): bool    // Returns true if a virus was detected
-output(): string    // Returns the scanner output
 ```
 
 ### CleanFile Rule

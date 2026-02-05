@@ -3,13 +3,15 @@
 namespace Jodeveloper\UploadFileScanner\Rules;
 
 use Illuminate\Contracts\Validation\Rule;
-use Jodeveloper\UploadFileScanner\ClamAvScanner;
+use Jodeveloper\UploadFileScanner\Contracts\Scanner;
 
 class CleanFile implements Rule
 {
     public function __construct(
-        private ClamAvScanner $scanner,
-    ) {}
+        protected ?Scanner $scanner = null,
+    ) {
+        $this->scanner = $scanner ?? app(Scanner::class);
+    }
 
     public function passes($attribute, $value): bool
     {

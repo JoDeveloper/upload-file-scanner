@@ -67,7 +67,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Jodeveloper\\UploadFileScanner\\SkeletonServiceProvider"
+                "Jodeveloper\\UploadFileScanner\\UploadFileScannerServiceProvider"
             ]
         }
     },

@@ -3,7 +3,7 @@
 namespace Jodeveloper\UploadFileScanner\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Jodeveloper\UploadFileScanner\SkeletonServiceProvider;
+use Jodeveloper\UploadFileScanner\UploadFileScannerServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -20,7 +20,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            SkeletonServiceProvider::class,
+            UploadFileScannerServiceProvider::class,
         ];
     }
 
