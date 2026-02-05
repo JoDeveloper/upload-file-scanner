@@ -89,7 +89,7 @@ After installation, verify that ClamAV is accessible:
 clamscan --version
 ```
 
-This should display the ClamAV version information.
+This should display ClamAV version information.
 
 ## Usage
 
@@ -118,27 +118,28 @@ $output = $result->output();
 
 The package provides a Laravel validation rule for easy integration:
 
-```php
-use Illuminate\Http\Request;
-use Jodeveloper\UploadFileScanner\Rules\CleanFile;
-
-public function upload(Request $request)
-{
-    $validated = $request->validate([
-        'file' => ['required', 'file', new CleanFile(app(\Jodeveloper\UploadFileScanner\ClamAvScanner::class))],
-    ]);
-
-    // File is clean, proceed with storage
-}
-```
-
-Or use the string-based rule:
+**Simple approach (recommended):**
 
 ```php
 public function upload(Request $request)
 {
     $validated = $request->validate([
         'file' => ['required', 'file', 'clean_file'],
+    ]);
+
+    // File is clean, proceed with storage
+}
+```
+
+**For more control, use the object-based approach:**
+
+```php
+use Jodeveloper\UploadFileScanner\Rules\CleanFile;
+
+public function upload(Request $request)
+{
+    $validated = $request->validate([
+        'file' => ['required', 'file', new CleanFile(app(\Jodeveloper\UploadFileScanner\ClamAvScanner::class))],
     ]);
 
     // File is clean, proceed with storage
@@ -223,7 +224,7 @@ This package provides virus scanning as a secondary security layer. It should **
 1. **Re-encoding Images**: Always re-encode uploaded images to strip potential embedded payloads
 2. **File Type Validation**: Validate MIME types and file extensions
 3. **Content Inspection**: Inspect file contents, not just extensions
-4. **Storage Location**: Store uploads outside the public web root
+4. **Storage Location**: Store uploads outside of the public web root
 5. **Access Control**: Implement proper authentication and authorization
 
 ### SVG Files are Unsafe
