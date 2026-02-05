@@ -2,10 +2,11 @@
 
 namespace Jodeveloper\UploadFileScanner\Rules;
 
-use Illuminate\Contracts\Validation\Rule;
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Jodeveloper\UploadFileScanner\Contracts\Scanner;
 
-class CleanFile implements Rule
+class CleanFile implements ValidationRule
 {
     public function __construct(
         protected ?Scanner $scanner = null,
@@ -13,21 +14,19 @@ class CleanFile implements Rule
         $this->scanner = $scanner ?? app(Scanner::class);
     }
 
-    public function passes($attribute, $value): bool
+    public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $path = $value->getRealPath();
 
         if ($path === false) {
-            return false;
+            $fail('The uploaded file contains a virus.');
+            return;
         }
 
         $result = $this->scanner->scan($path);
 
-        return $result->isClean();
-    }
-
-    public function message(): string
-    {
-        return 'The uploaded file contains a virus.';
+        if (! $result->isClean()) {
+            $fail('The uploaded file contains a virus.');
+        }
     }
 }

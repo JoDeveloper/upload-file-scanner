@@ -33,8 +33,13 @@ class UploadFileScannerServiceProvider extends PackageServiceProvider
     {
         Validator::extend('clean_file', function ($attribute, $value, $parameters, $validator) {
             $rule = new Rules\CleanFile(app(Scanner::class));
+            $passes = true;
 
-            return $rule->passes($attribute, $value);
+            $rule->validate($attribute, $value, function ($message) use (&$passes) {
+                $passes = false;
+            });
+
+            return $passes;
         }, 'The uploaded file contains a virus.');
     }
 }
