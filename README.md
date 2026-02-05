@@ -1,5 +1,10 @@
 # Laravel ClamAV Upload Scanner
 
+<p align="center">
+    <img src="logo.png" alt="Laravel ClamAV Upload Scanner" width="400">
+</p>
+
+
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/jodeveloper/upload-file-scanner.svg?style=flat-square)](https://packagist.org/packages/jodeveloper/upload-file-scanner)
 [![Total Downloads](https://img.shields.io/packagist/dt/jodeveloper/upload-file-scanner.svg?style=flat-square)](https://packagist.org/packages/jodeveloper/upload-file-scanner)
 
