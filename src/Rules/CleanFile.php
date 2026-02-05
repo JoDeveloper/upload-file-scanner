@@ -20,6 +20,7 @@ class CleanFile implements ValidationRule
 
         if ($path === false) {
             $fail('The file could not be scanned.');
+
             return;
         }
 
