@@ -20,6 +20,7 @@ class CleanFile implements ValidationRule
 
         if ($path === false) {
             $fail('The uploaded file contains a virus.');
+
             return;
         }
 
