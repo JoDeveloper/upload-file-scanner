@@ -19,7 +19,7 @@ class CleanFile implements ValidationRule
         $path = $value->getRealPath();
 
         if ($path === false) {
-            $fail('The uploaded file contains a virus.');
+            $fail('The file could not be scanned.');
             return;
         }
 

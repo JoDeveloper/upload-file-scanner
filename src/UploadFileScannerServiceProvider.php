@@ -35,6 +35,7 @@ class UploadFileScannerServiceProvider extends PackageServiceProvider
             $rule = new Rules\CleanFile(app(Scanner::class));
             $passes = true;
 
+            /** @phpstan-ignore argument.type */
             $rule->validate($attribute, $value, function ($message) use (&$passes) {
                 $passes = false;
             });
